@@ -1,300 +1,266 @@
-<antArtifact identifier="grand-strategy-game" type="application/vnd.ant.react" title="Grand Strategy: Global Crisis - World War III Dashboard">
-<div id="root"></div>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grand Strategy: Global Crisis</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-950">
+  <div id="root"></div>
 
-<script type="text/babel">
-function App() {
-  const [gameState, setGameState] = useState('menu'); // menu, playing, gameover
-  const [nation, setNation] = useState(null);
-  const [month, setMonth] = useState(1);
-  const [year, setYear] = useState(2026);
-  
-  // Resources
-  const [stats, setStats] = useState({
-    ip: 0,
-    mp: 0,
-    energy: 0,
-    stability: 100,
-    warSupport: 50,
-  });
-
-  // Action logs
-  const [logs, setLogs] = useState([]);
-
-  const nationsData = {
-    usa: {
-      name: "United States (USA)",
-      alignment: "Western Democratic Coalition",
-      ip: 120,
-      mp: 1500,
-      energy: 100,
-      color: "blue",
-      desc: "Massive industrial output, superior air/naval tech, global alliances."
-    },
-    prc: {
-      name: "People's Republic of China (PRC)",
-      alignment: "Eastern Eurasian Pact",
-      ip: 110,
-      mp: 3500,
-      energy: 70,
-      color: "red",
-      desc: "Massive manpower reserves, manufacturing hub, cyber warfare dominance."
-    },
-    eu: {
-      name: "European Federation (EU)",
-      alignment: "EU Defense Force",
-      ip: 95,
-      mp: 1200,
-      energy: 60,
-      color: "indigo",
-      desc: "Advanced defensive tech, highly educated population, strong economy."
-    },
-    ru: {
-      name: "Russian Federation (RU)",
-      alignment: "Eurasian Strategic Axis",
-      ip: 75,
-      mp: 1800,
-      energy: 150,
-      color: "orange",
-      desc: "Vast natural resources, formidable nuclear arsenal, heavy armor."
-    }
-  };
-
-  const selectNation = (key) => {
-    const nat = nationsData[key];
-    setNation(nat);
-    setStats({
-      ip: nat.ip,
-      mp: nat.mp,
-      energy: nat.energy,
-      stability: 90,
-      warSupport: 60,
-    });
-    setLogs([`[Month 1, 2026] You have assumed supreme control of ${nat.name}. The global crisis escalates.`]);
-    setGameState('playing');
-  };
-
-  const advanceMonth = (actionType) => {
-    let newIp = stats.ip;
-    let newMp = stats.mp;
-    let newEnergy = stats.energy;
-    let newStab = stats.stability;
-    let newWarSup = stats.warSupport;
-    let logMsg = "";
-
-    if (actionType === 'military') {
-      newIp -= 15;
-      newMp -= 50;
-      newWarSup += 5;
-      logMsg = "Expanded military divisions and mobilized reservists. War support rises.";
-    } else if (actionType === 'economy') {
-      newIp += 10;
-      newEnergy += 5;
-      logMsg = "Invested heavily into civilian and military industrial complexes. IP output increased.";
-    } else if (actionType === 'diplomacy') {
-      newStab += 5;
-      newEnergy += 10;
-      logMsg = "Secured emergency energy trade agreements and stabilized regional alliances.";
-    } else {
-      logMsg = "Maintained strategic posture and monitored global flashpoints.";
-    }
-
-    // Time progression
-    let nextMonth = month + 1;
-    let nextYear = year;
-    if (nextMonth > 12) {
-      nextMonth = 1;
-      nextYear += 1;
-    }
-
-    setMonth(nextMonth);
-    setYear(nextYear);
-    setStats({
-      ip: Math.max(0, newIp),
-      mp: Math.max(0, newMp),
-      energy: Math.max(0, newEnergy),
-      stability: Math.min(100, Math.max(0, newStab)),
-      warSupport: Math.min(100, Math.max(0, newWarSup)),
-    });
-
-    setLogs(prev => [`[Month ${nextMonth}, ${nextYear}] ${logMsg}`, ...prev.slice(0, 10)]);
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 sm:p-6 select-none flex flex-col items-center">
+  <script type="text/babel">
+    function App() {
+      const { useState } = React;
+      const [gameState, setGameState] = useState('menu');
+      const [nation, setNation] = useState(null);
+      const [month, setMonth] = useState(1);
+      const [year, setYear] = useState(2026);
       
-      {/* Header Banner */}
-      <header className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-amber-500 flex items-center gap-2">
-            <i className="fa-solid fa-globe"></i> Grand Strategy: Global Crisis
-          </h1>
-          <p className="text-xs text-slate-400">Paradox-Style Grand Strategy Engine (WWIII Simulation)</p>
-        </div>
-        {gameState === 'playing' && nation && (
-          <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 text-sm">
-            <div><span className="text-slate-400">Nation:</span> <strong className="text-white">{nation.name}</strong></div>
-            <div className="text-slate-600">|</div>
-            <div><span className="text-slate-400">Date:</span> <strong className="text-amber-400">Month {month}, {year}</strong></div>
-          </div>
-        )}
-      </header>
+      const [stats, setStats] = useState({
+        ip: 0,
+        mp: 0,
+        energy: 0,
+        stability: 100,
+        warSupport: 50,
+      });
 
-      {/* Main Container */}
-      <main className="w-full max-w-5xl">
-        {gameState === 'menu' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 sm:p-8 shadow-2xl text-center">
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-white">Select Your Power Bloc</h2>
-            <p className="text-slate-400 mb-8 max-w-xl mx-auto text-sm">
-              The global order has shattered. Choose your nation to manage resource production, military build-up, and geopolitical survival.
-            </p>
+      const [logs, setLogs] = useState([]);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-              {Object.keys(nationsData).map((key) => {
-                const nat = nationsData[key];
-                return (
-                  <div key={key} className="bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition-all rounded-xl p-5 flex flex-col justify-between shadow-md">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold text-amber-400">{nat.name}</h3>
-                        <span className="text-[10px] uppercase tracking-wider bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">{nat.alignment}</span>
+      const nationsData = {
+        usa: {
+          name: "United States (USA)",
+          alignment: "Western Democratic Coalition",
+          ip: 120,
+          mp: 1500,
+          energy: 100,
+          desc: "Massive industrial output, superior air/naval tech, global alliances."
+        },
+        prc: {
+          name: "People's Republic of China (PRC)",
+          alignment: "Eastern Eurasian Pact",
+          ip: 110,
+          mp: 3500,
+          energy: 70,
+          desc: "Massive manpower reserves, manufacturing hub, cyber warfare dominance."
+        },
+        eu: {
+          name: "European Federation (EU)",
+          alignment: "EU Defense Force",
+          ip: 95,
+          mp: 1200,
+          energy: 60,
+          desc: "Advanced defensive tech, highly educated population, strong economy."
+        },
+        ru: {
+          name: "Russian Federation (RU)",
+          alignment: "Eurasian Strategic Axis",
+          ip: 75,
+          mp: 1800,
+          energy: 150,
+          desc: "Vast natural resources, formidable nuclear arsenal, heavy armor."
+        }
+      };
+
+      const selectNation = (key) => {
+        const nat = nationsData[key];
+        setNation(nat);
+        setStats({
+          ip: nat.ip,
+          mp: nat.mp,
+          energy: nat.energy,
+          stability: 90,
+          warSupport: 60,
+        });
+        setLogs([`[Month 1, 2026] You have assumed supreme control of ${nat.name}. The global crisis escalates.`]);
+        setGameState('playing');
+      };
+
+      const advanceMonth = (actionType) => {
+        let newIp = stats.ip;
+        let newMp = stats.mp;
+        let newEnergy = stats.energy;
+        let newStab = stats.stability;
+        let newWarSup = stats.warSupport;
+        let logMsg = "";
+
+        if (actionType === 'military') {
+          newIp -= 15;
+          newMp -= 50;
+          newWarSup += 5;
+          logMsg = "Expanded military divisions and mobilized reservists. War support rises.";
+        } else if (actionType === 'economy') {
+          newIp += 10;
+          newEnergy += 5;
+          logMsg = "Invested heavily into civilian and military industrial complexes. IP output increased.";
+        } else if (actionType === 'diplomacy') {
+          newStab += 5;
+          newEnergy += 10;
+          logMsg = "Secured emergency energy trade agreements and stabilized regional alliances.";
+        } else {
+          logMsg = "Maintained strategic posture and monitored global flashpoints.";
+        }
+
+        let nextMonth = month + 1;
+        let nextYear = year;
+        if (nextMonth > 12) {
+          nextMonth = 1;
+          nextYear += 1;
+        }
+
+        setMonth(nextMonth);
+        setYear(nextYear);
+        setStats({
+          ip: Math.max(0, newIp),
+          mp: Math.max(0, newMp),
+          energy: Math.max(0, newEnergy),
+          stability: Math.min(100, Math.max(0, newStab)),
+          warSupport: Math.min(100, Math.max(0, newWarSup)),
+        });
+
+        setLogs(prev => [`[Month ${nextMonth}, ${nextYear}] ${logMsg}`, ...prev.slice(0, 10)]);
+      };
+
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 sm:p-6 select-none flex flex-col items-center">
+          <header className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-amber-500 flex items-center gap-2">
+                <i className="fa-solid fa-globe"></i> Grand Strategy: Global Crisis
+              </h1>
+              <p className="text-xs text-slate-400">Paradox-Style Grand Strategy Engine</p>
+            </div>
+            {gameState === 'playing' && nation && (
+              <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 text-sm">
+                <div><span className="text-slate-400">Nation:</span> <strong className="text-white">{nation.name}</strong></div>
+                <div className="text-slate-600">|</div>
+                <div><span className="text-slate-400">Date:</span> <strong className="text-amber-400">Month {month}, {year}</strong></div>
+              </div>
+            )}
+          </header>
+
+          <main className="w-full max-w-5xl">
+            {gameState === 'menu' && (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 sm:p-8 shadow-2xl text-center">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-white">Select Your Power Bloc</h2>
+                <p className="text-slate-400 mb-8 max-w-xl mx-auto text-sm">
+                  The global order has shattered. Choose your nation to manage resource production, military build-up, and geopolitical survival.
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
+                  {Object.keys(nationsData).map((key) => {
+                    const nat = nationsData[key];
+                    return (
+                      <div key={key} className="bg-slate-950 border border-slate-800 hover:border-amber-500/50 transition-all rounded-xl p-5 flex flex-col justify-between shadow-md">
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <h3 className="text-lg font-bold text-amber-400">{nat.name}</h3>
+                            <span className="text-[10px] uppercase tracking-wider bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">{nat.alignment}</span>
+                          </div>
+                          <p className="text-xs text-slate-400 mb-4">{nat.desc}</p>
+                        </div>
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-900 mt-2">
+                          <div className="text-xs space-x-2 text-slate-300">
+                            <span><i className="fa-solid fa-industry text-blue-400"></i> {nat.ip} IP</span>
+                            <span><i className="fa-solid fa-users text-green-400"></i> {nat.mp}k MP</span>
+                            <span><i className="fa-solid fa-bolt text-yellow-400"></i> {nat.energy} EF</span>
+                          </div>
+                          <button 
+                            onClick={() => selectNation(key)}
+                            className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow"
+                          >
+                            Lead Nation <i className="fa-solid fa-arrow-right ml-1"></i>
+                          </button>
+                        </div>
                       </div>
-                      <p className="text-xs text-slate-400 mb-4">{nat.desc}</p>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {gameState === 'playing' && nation && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-industry text-blue-400 mr-1"></i> Industry</div>
+                      <div className="text-xl font-extrabold text-blue-400 mt-1">{stats.ip} <span className="text-xs text-slate-500">IP</span></div>
                     </div>
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-900 mt-2">
-                      <div className="text-xs space-x-2 text-slate-300">
-                        <span><i className="fa-solid fa-industry text-blue-400"></i> {nat.ip} IP</span>
-                        <span><i className="fa-solid fa-users text-green-400"></i> {nat.mp}k MP</span>
-                        <span><i className="fa-solid fa-bolt text-yellow-400"></i> {nat.energy} EF</span>
-                      </div>
-                      <button 
-                        onClick={() => selectNation(key)}
-                        className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow"
-                      >
-                        Lead Nation <i className="fa-solid fa-arrow-right ml-1"></i>
+                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-users text-green-400 mr-1"></i> Manpower</div>
+                      <div className="text-xl font-extrabold text-green-400 mt-1">{stats.mp}k</div>
+                    </div>
+                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-bolt text-yellow-400 mr-1"></i> Energy</div>
+                      <div className="text-xl font-extrabold text-yellow-400 mt-1">{stats.energy}</div>
+                    </div>
+                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
+                      <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-shield text-indigo-400 mr-1"></i> Stability</div>
+                      <div className="text-xl font-extrabold text-indigo-400 mt-1">{stats.stability}%</div>
+                    </div>
+                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 col-span-2 sm:col-span-1">
+                      <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-fire text-red-400 mr-1"></i> War Support</div>
+                      <div className="text-xl font-extrabold text-red-400 mt-1">{stats.warSupport}%</div>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
+                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-4 border-b border-slate-800 pb-2">
+                      <i className="fa-solid fa-chess-board mr-2 text-amber-500"></i> Strategic Executive Actions
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button onClick={() => advanceMonth('military')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-red-500/50 p-4 rounded-xl text-left transition-all">
+                        <div className="font-bold text-red-400 text-sm mb-1"><i className="fa-solid fa-jet-fighter mr-2"></i> Military Buildup</div>
+                        <p className="text-xs text-slate-400">Cost: 15 IP, 50k Manpower. Boosts active war readiness.</p>
+                      </button>
+                      <button onClick={() => advanceMonth('economy')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 p-4 rounded-xl text-left transition-all">
+                        <div className="font-bold text-blue-400 text-sm mb-1"><i className="fa-solid fa-gears mr-2"></i> Industrial Expansion</div>
+                        <p className="text-xs text-slate-400">Focuses domestic capacity on building factories (+10 IP).</p>
+                      </button>
+                      <button onClick={() => advanceMonth('diplomacy')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 p-4 rounded-xl text-left transition-all">
+                        <div className="font-bold text-indigo-400 text-sm mb-1"><i className="fa-solid fa-handshake mr-2"></i> Diplomatic Maneuvers</div>
+                        <p className="text-xs text-slate-400">Secure resource pacts and lower internal dissent (+5 Stability).</p>
+                      </button>
+                      <button onClick={() => advanceMonth('pass')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 p-4 rounded-xl text-left transition-all">
+                        <div className="font-bold text-amber-400 text-sm mb-1"><i className="fa-solid fa-hourglass-half mr-2"></i> Strategic Patience</div>
+                        <p className="text-xs text-slate-400">Hold current positions without aggressive moves.</p>
                       </button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {gameState === 'playing' && nation && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Left & Center Columns: Dashboard & Actions */}
-            <div className="lg:col-span-2 space-y-6">
-              
-              {/* Stat Dashboards */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-industry text-blue-400 mr-1"></i> Industry</div>
-                  <div className="text-xl font-extrabold text-blue-400 mt-1">{stats.ip} <span className="text-xs text-slate-500">IP</span></div>
                 </div>
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-users text-green-400 mr-1"></i> Manpower</div>
-                  <div className="text-xl font-extrabold text-green-400 mt-1">{stats.mp}k</div>
-                </div>
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-bolt text-yellow-400 mr-1"></i> Energy/Fuel</div>
-                  <div className="text-xl font-extrabold text-yellow-400 mt-1">{stats.energy}</div>
-                </div>
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                  <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-shield text-indigo-400 mr-1"></i> Stability</div>
-                  <div className="text-xl font-extrabold text-indigo-400 mt-1">{stats.stability}%</div>
-                </div>
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 col-span-2 sm:col-span-1">
-                  <div className="text-[10px] uppercase text-slate-400"><i className="fa-solid fa-fire text-red-400 mr-1"></i> War Support</div>
-                  <div className="text-xl font-extrabold text-red-400 mt-1">{stats.warSupport}%</div>
-                </div>
-              </div>
 
-              {/* Strategic Command Panel */}
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-                <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-4 border-b border-slate-800 pb-2">
-                  <i className="fa-solid fa-chess-board mr-2 text-amber-500"></i> Strategic Executive Actions (1 Turn = 1 Month)
-                </h3>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => advanceMonth('military')}
-                    className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-red-500/50 p-4 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-bold text-red-400 text-sm mb-1 group-hover:translate-x-1 transition-transform">
-                      <i className="fa-solid fa-jet-fighter mr-2"></i> Military Buildup
-                    </div>
-                    <p className="text-xs text-slate-400">Cost: 15 IP, 50k Manpower. Boosts active war readiness and combat divisions.</p>
-                  </button>
-
-                  <button 
-                    onClick={() => advanceMonth('economy')}
-                    className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 p-4 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-bold text-blue-400 text-sm mb-1 group-hover:translate-x-1 transition-transform">
-                      <i className="fa-solid fa-gears mr-2"></i> Industrial Expansion
-                    </div>
-                    <p className="text-xs text-slate-400">Focuses domestic capacity on building factories and securing supply chains (+10 IP).</p>
-                  </button>
-
-                  <button 
-                    onClick={() => advanceMonth('diplomacy')}
-                    className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 p-4 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-bold text-indigo-400 text-sm mb-1 group-hover:translate-x-1 transition-transform">
-                      <i className="fa-solid fa-handshake mr-2"></i> Diplomatic Maneuvers
-                    </div>
-                    <p className="text-xs text-slate-400">Secure resource pacts, lower internal dissent, and stabilize government approval (+5 Stability).</p>
-                  </button>
-
-                  <button 
-                    onClick={() => advanceMonth('pass')}
-                    className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 p-4 rounded-xl text-left transition-all group"
-                  >
-                    <div className="font-bold text-amber-400 text-sm mb-1 group-hover:translate-x-1 transition-transform">
-                      <i className="fa-solid fa-hourglass-half mr-2"></i> Strategic Patience
-                    </div>
-                    <p className="text-xs text-slate-400">Hold current positions, accumulate resources without aggressive moves.</p>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Event Log */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col h-[400px] lg:h-auto">
-              <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-3 border-b border-slate-800 pb-2">
-                <i className="fa-solid fa-terminal mr-2 text-amber-500"></i> Operational Situation Log
-              </h3>
-              <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex-1 overflow-y-auto space-y-2 text-xs font-mono">
-                {logs.map((log, index) => (
-                  <div key={index} className="text-slate-300 border-b border-slate-900 pb-1.5 last:border-0">
-                    {log}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col h-[400px] lg:h-auto">
+                  <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-3 border-b border-slate-800 pb-2">
+                    <i className="fa-solid fa-terminal mr-2 text-amber-500"></i> Situation Log
+                  </h3>
+                  <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex-1 overflow-y-auto space-y-2 text-xs font-mono">
+                    {logs.map((log, index) => (
+                      <div key={index} className="text-slate-300 border-b border-slate-900 pb-1.5 last:border-0">
+                        {log}
+                      </div>
+                    ))}
                   </div>
-                ))}
+                  <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">DEFCON 2</span>
+                    <button onClick={() => setGameState('menu')} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg">
+                      <i className="fa-solid fa-rotate-left mr-1"></i> Main Menu
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
-                <span className="text-[10px] text-slate-500 uppercase tracking-widest">Global Status: DEFCON 2</span>
-                <button 
-                  onClick={() => setGameState('menu')}
-                  className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  <i className="fa-solid fa-rotate-left mr-1"></i> Main Menu
-                </button>
-              </div>
-            </div>
+            )}
+          </main>
+        </div>
+      );
+    }
 
-          </div>
-        )}
-      </main>
-    </div>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-</script>
-</antArtifact>
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
