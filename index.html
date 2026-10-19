@@ -10,252 +10,202 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-950">
+<body class="bg-slate-950 text-slate-100">
   <div id="root"></div>
 
   <script type="text/babel">
+    const { useState, useEffect } = React;
+
     function App() {
-      const { useState } = React;
       const [gameState, setGameState] = useState('menu');
       const [nation, setNation] = useState(null);
-      const [month, setMonth] = useState(1);
-      const [year, setYear] = useState(2026);
+      const [turn, setTurn] = useState(1);
       
       const [stats, setStats] = useState({
-        ip: 0,
-        mp: 0,
-        energy: 0,
-        stability: 100,
-        warSupport: 50,
+        gold: 100,
+        army: 50,
+        expansionPoints: 3,
       });
 
-      const [territories, setTerritories] = useState([
-        { id: 1, name: "North Zone", owner: "USA", color: "border-blue-500 bg-blue-950 text-blue-400" },
-        { id: 2, name: "East Zone", owner: "PRC", color: "border-red-500 bg-red-950 text-red-400" },
-        { id: 3, name: "Central Zone", owner: "EU", color: "border-emerald-500 bg-emerald-950 text-emerald-400" },
-        { id: 4, name: "Southern Steppes", owner: "RU", color: "border-amber-500 bg-amber-950 text-amber-400" }
+      // Expanded Map Grid (OpenFront style tiles)
+      const [tiles, setTiles] = useState([
+        { id: 0, name: "North-West Coast", owner: "Neutral", defense: 10, color: "bg-slate-800 border-slate-700 text-slate-300" },
+        { id: 1, name: "Northern Plains", owner: "Neutral", defense: 15, color: "bg-slate-800 border-slate-700 text-slate-300" },
+        { id: 2, name: "Capital Region", owner: "Player", defense: 30, color: "bg-blue-900 border-blue-500 text-blue-300" },
+        { id: 3, name: "Eastern Hills", owner: "Neutral", defense: 20, color: "bg-slate-800 border-slate-700 text-slate-300" },
+        { id: 4, name: "Western Desert", owner: "Neutral", defense: 15, color: "bg-slate-800 border-slate-700 text-slate-300" },
+        { id: 5, name: "Central Valley", owner: "AI_Rival", defense: 25, color: "bg-red-950 border-red-600 text-red-300" },
+        { id: 6, name: "Industrial Core", owner: "AI_Rival", defense: 35, color: "bg-red-950 border-red-600 text-red-300" },
+        { id: 7, name: "Eastern Port", owner: "Neutral", defense: 20, color: "bg-slate-800 border-slate-700 text-slate-300" },
+        { id: 8, name: "Southern Jungle", owner: "Neutral", defense: 10, color: "bg-slate-800 border-slate-700 text-slate-300" },
+        { id: 9, name: "Southern Reach", owner: "Neutral", defense: 15, color: "bg-slate-800 border-slate-700 text-slate-300" },
       ]);
 
       const [logs, setLogs] = useState([]);
 
       const nationsData = {
-        usa: { name: "United States (USA)", alignment: "Western Democratic Coalition", ip: 120, mp: 1500, energy: 100, desc: "Massive industrial output, superior air/naval tech." },
-        prc: { name: "People's Republic of China (PRC)", alignment: "Eastern Eurasian Pact", ip: 110, mp: 3500, energy: 70, desc: "Massive manpower reserves, manufacturing hub." },
-        eu: { name: "European Federation (EU)", alignment: "EU Defense Force", ip: 95, mp: 1200, energy: 60, desc: "Advanced defensive tech, highly educated population." },
-        ru: { name: "Russian Federation (RU)", alignment: "Eurasian Strategic Axis", ip: 75, mp: 1800, energy: 150, desc: "Vast natural resources, heavy armor." }
+        usa: { name: "United States Alliance", bonus: "+20 Starting Gold" },
+        eur: { name: "European Coalition", bonus: "+10 Starting Army" },
+        asi: { name: "Eurasian Pact", bonus: "+1 Expansion Point" }
       };
 
       const selectNation = (key) => {
         const nat = nationsData[key];
         setNation(nat);
-        setStats({
-          ip: nat.ip,
-          mp: nat.mp,
-          energy: nat.energy,
-          stability: 90,
-          warSupport: 60,
-        });
-        setLogs([`[Month 1, 2026] You have assumed control of ${nat.name}. Global crisis begins.`]);
+        setLogs([`[Turn 1] Command established as ${nat.name}. Expand your territory to win!`]);
         setGameState('playing');
       };
 
-      const advanceMonth = (actionType) => {
-        let newIp = stats.ip;
-        let newMp = stats.mp;
-        let newEnergy = stats.energy;
-        let newStab = stats.stability;
-        let newWarSup = stats.warSupport;
-        let logMsg = "";
-
-        if (actionType === 'military') {
-          newIp -= 15;
-          newMp -= 50;
-          newWarSup += 5;
-          logMsg = "Expanded military divisions and mobilized reservists.";
-        } else if (actionType === 'economy') {
-          newIp += 10;
-          newEnergy += 5;
-          logMsg = "Invested heavily into industrial complexes. IP output increased.";
-        } else if (actionType === 'diplomacy') {
-          newStab += 5;
-          newEnergy += 10;
-          logMsg = "Secured emergency energy trade agreements.";
-        } else {
-          logMsg = "Maintained strategic posture and monitored flashpoints.";
+      // Player Action: Attack or Expand into a tile
+      const handleTileClick = (tile) => {
+        if (tile.owner === 'Player') {
+          setLogs(prev => [`[Info] You already control ${tile.name}.`, ...prev.slice(0, 6)]);
+          return;
         }
 
-        let nextMonth = month + 1;
-        let nextYear = year;
-        if (nextMonth > 12) {
-          nextMonth = 1;
-          nextYear += 1;
+        if (stats.army < tile.defense) {
+          setLogs(prev => [`[Failed Attack] ${tile.name} has defense ${tile.defense}. You need a larger army!`, ...prev.slice(0, 6)]);
+          return;
         }
 
-        const aiRivals = ["USA", "PRC", "EU", "RU"];
-        const colorMap = {
-          "USA": "border-blue-500 bg-blue-950 text-blue-400",
-          "PRC": "border-red-500 bg-red-950 text-red-400",
-          "EU": "border-emerald-500 bg-emerald-950 text-emerald-400",
-          "RU": "border-amber-500 bg-amber-950 text-amber-400"
-        };
-
-        let updatedTerritories = [...territories];
-        let aiEventMsg = "Rival power blocs monitored borders.";
-
-        if (Math.random() < 0.3) {
-          const randomZoneIndex = Math.floor(Math.random() * updatedTerritories.length);
-          const randomRival = aiRivals[Math.floor(Math.random() * aiRivals.length)];
-          const targetZone = updatedTerritories[randomZoneIndex];
-
-          if (targetZone.owner !== randomRival) {
-            targetZone.owner = randomRival;
-            targetZone.color = colorMap[randomRival];
-            aiEventMsg = `[AI Offensive] ${randomRival} successfully contested and captured the ${targetZone.name}!`;
+        // Conquer Tile
+        const updatedTiles = tiles.map(t => {
+          if (t.id === tile.id) {
+            return { ...t, owner: 'Player', color: "bg-blue-900 border-blue-500 text-blue-300" };
           }
-        } else {
-          const randomAiAction = ["mobilized troops", "upgraded factories", "secured trade routes"][Math.floor(Math.random() * 3)];
-          aiEventMsg = `[AI Update] Rival power blocs have ${randomAiAction}.`;
-        }
-
-        setTerritories(updatedTerritories);
-        setMonth(nextMonth);
-        setYear(nextYear);
-        setStats({
-          ip: Math.max(0, newIp),
-          mp: Math.max(0, newMp),
-          energy: Math.max(0, newEnergy),
-          stability: Math.min(100, Math.max(0, newStab)),
-          warSupport: Math.min(100, Math.max(0, newWarSup)),
+          return t;
         });
 
+        setTiles(updatedTiles);
+        setStats(prev => ({
+          ...prev,
+          gold: prev.gold + 25,
+          army: prev.army - 10,
+        }));
+
+        setLogs(prev => [`[Victory] Successfully captured ${tile.name}! Gained +25 Gold.`, ...prev.slice(0, 6)]);
+      };
+
+      // End Turn & AI Turn simulation
+      const endTurn = () => {
+        let newGold = stats.gold + 40; // Income per turn
+        let newArmy = stats.army + 20; // Recruitment per turn
+
+        // AI Logic: AI tries to expand into neutral territory
+        let updatedTiles = [...tiles];
+        const neutralTiles = updatedTiles.filter(t => t.owner === 'Neutral');
+        
+        let aiLog = "AI rival consolidated its borders.";
+        if (neutralTiles.length > 0 && Math.random() < 0.7) {
+          const targetNeutral = neutralTiles[Math.floor(Math.random() * neutralTiles.length)];
+          updatedTiles = updatedTiles.map(t => {
+            if (t.id === targetNeutral.id) {
+              return { ...t, owner: 'AI_Rival', color: "bg-red-950 border-red-600 text-red-300" };
+            }
+            return t;
+          });
+          aiLog = `[AI Expansion] Rival faction conquered ${targetNeutral.name}!`;
+        }
+
+        setTiles(updatedTiles);
+        setStats({
+          gold: newGold,
+          army: newArmy,
+          expansionPoints: 3,
+        });
+        setTurn(prev => prev + 1);
+
         setLogs(prev => [
-          `[Month ${nextMonth}, ${nextYear}] ${logMsg}`,
-          aiEventMsg,
-          ...prev.slice(0, 8)
+          `--- Turn ${turn + 1} Started ---`,
+          aiLog,
+          `Economic report: +40 Gold, +20 Army units added.`,
+          ...prev.slice(0, 5)
         ]);
       };
 
       return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 font-sans p-4 sm:p-6 select-none flex flex-col items-center">
-          <header className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black tracking-wider uppercase text-amber-500 flex items-center gap-2">
-                <i className="fa-solid fa-globe"></i> Grand Strategy: Global Crisis
-              </h1>
-            </div>
-            {gameState === 'playing' && nation && (
-              <div className="flex items-center gap-3 bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 text-sm">
-                <div><span className="text-slate-400">Nation:</span> <strong className="text-white">{nation.name}</strong></div>
-                <div className="text-slate-600">|</div>
-                <div><span className="text-slate-400">Date:</span> <strong className="text-amber-400">Month {month}, {year}</strong></div>
+        <div className="min-h-screen bg-slate-950 p-4 sm:p-6 flex flex-col items-center font-sans select-none">
+          <header className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-xl p-4 mb-6 shadow-xl flex justify-between items-center">
+            <h1 className="text-lg sm:text-xl font-black text-amber-400 tracking-wider">
+              <i className="fa-solid fa-earth-americas mr-2"></i> GLOBAL CRISIS: OPENFRONT EDITION
+            </h1>
+            {gameState === 'playing' && (
+              <div className="text-sm bg-slate-950 px-3 py-1 rounded border border-slate-800">
+                Turn: <span className="text-amber-400 font-bold">{turn}</span>
               </div>
             )}
           </header>
 
-          <main className="w-full max-w-5xl">
+          <main className="w-full max-w-4xl">
             {gameState === 'menu' && (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 sm:p-8 shadow-2xl text-center">
-                <h2 className="text-2xl sm:text-3xl font-bold mb-3 text-white">Select Your Power Bloc</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left mt-6">
-                  {Object.keys(nationsData).map((key) => {
-                    const nat = nationsData[key];
-                    return (
-                      <div key={key} className="bg-slate-950 border border-slate-800 hover:border-amber-500/55 transition-all rounded-xl p-5 flex flex-col justify-between shadow-md">
-                        <div>
-                          <h3 className="text-lg font-bold text-amber-400">{nat.name}</h3>
-                          <p className="text-xs text-slate-400 mb-4">{nat.desc}</p>
-                        </div>
-                        <button onClick={() => selectNation(key)} className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors shadow">
-                          Lead Nation <i className="fa-solid fa-arrow-right ml-1"></i>
-                        </button>
+              <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center shadow-2xl">
+                <h2 className="text-2xl font-bold mb-4">Choose Your Faction</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
+                  {Object.keys(nationsData).map(key => (
+                    <div key={key} className="bg-slate-950 border border-slate-800 p-5 rounded-xl flex flex-col justify-between hover:border-amber-500 transition">
+                      <div>
+                        <h3 className="font-bold text-amber-400 mb-2">{nationsData[key].name}</h3>
+                        <p className="text-xs text-slate-400 mb-4">{nationsData[key].bonus}</p>
                       </div>
-                    );
-                  })}
+                      <button onClick={() => selectNation(key)} className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold py-2 rounded">
+                        Deploy
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
-            {gameState === 'playing' && nation && (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
-                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                      <div className="text-[10px] uppercase text-slate-400">Industry</div>
-                      <div className="text-xl font-extrabold text-blue-400 mt-1">{stats.ip} <span className="text-xs text-slate-500">IP</span></div>
+            {gameState === 'playing' && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Left Panel: Stats & Controls */}
+                <div className="space-y-4">
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl space-y-3">
+                    <h3 className="text-xs font-bold uppercase text-slate-400 tracking-wider">Resource Hub</h3>
+                    <div className="flex justify-between bg-slate-950 p-2.5 rounded border border-slate-800 text-sm">
+                      <span>Treasury Gold:</span>
+                      <strong className="text-yellow-400">{stats.gold}</strong>
                     </div>
-                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                      <div className="text-[10px] uppercase text-slate-400">Manpower</div>
-                      <div className="text-xl font-extrabold text-green-400 mt-1">{stats.mp}k</div>
+                    <div className="flex justify-between bg-slate-950 p-2.5 rounded border border-slate-800 text-sm">
+                      <span>Army Strength:</span>
+                      <strong className="text-green-400">{stats.army}</strong>
                     </div>
-                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                      <div className="text-[10px] uppercase text-slate-400">Energy</div>
-                      <div className="text-xl font-extrabold text-yellow-400 mt-1">{stats.energy}</div>
-                    </div>
-                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800">
-                      <div className="text-[10px] uppercase text-slate-400">Stability</div>
-                      <div className="text-xl font-extrabold text-indigo-400 mt-1">{stats.stability}%</div>
-                    </div>
-                    <div className="bg-slate-950 p-3 rounded-lg border border-slate-800 col-span-2 sm:col-span-1">
-                      <div className="text-[10px] uppercase text-slate-400">War Support</div>
-                      <div className="text-xl font-extrabold text-red-400 mt-1">{stats.warSupport}%</div>
-                    </div>
+                    <button onClick={endTurn} className="w-full bg-blue-600 hover:bg-blue-500 font-bold text-xs py-3 rounded-lg transition mt-2 shadow">
+                      End Turn & Process AI <i className="fa-solid fa-forward ml-1"></i>
+                    </button>
                   </div>
 
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-3 border-b border-slate-800 pb-2">
-                      <i className="fa-solid fa-map mr-2 text-amber-500"></i> Global Territory Control
-                    </h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {territories.map(zone => (
-                        <div key={zone.id} className={`border p-3 rounded-lg text-center transition-all duration-300 ${zone.color}`}>
-                          <div className="text-xs font-bold">{zone.name}</div>
-                          <div className="text-[10px] mt-1 opacity-90 font-semibold">Owner: {zone.owner}</div>
-                        </div>
+                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl h-48 flex flex-col">
+                    <h3 className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">Live Situation Log</h3>
+                    <div className="bg-slate-950 border border-slate-800 rounded p-2 flex-1 overflow-y-auto text-[11px] font-mono space-y-1">
+                      {logs.map((log, idx) => (
+                        <div key={idx} className="text-slate-300 border-b border-slate-900 pb-1">{log}</div>
                       ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
-                    <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-4 border-b border-slate-800 pb-2">
-                      <i className="fa-solid fa-chess-board mr-2 text-amber-500"></i> Strategic Executive Actions
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <button onClick={() => advanceMonth('military')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-red-500/50 p-4 rounded-xl text-left transition-all">
-                        <div className="font-bold text-red-400 text-sm mb-1">Military Buildup</div>
-                        <p className="text-xs text-slate-400">Cost: 15 IP, 50k Manpower.</p>
-                      </button>
-                      <button onClick={() => advanceMonth('economy')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 p-4 rounded-xl text-left transition-all">
-                        <div className="font-bold text-blue-400 text-sm mb-1">Industrial Expansion</div>
-                        <p className="text-xs text-slate-400">Focuses capacity on building factories (+10 IP).</p>
-                      </button>
-                      <button onClick={() => advanceMonth('diplomacy')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/50 p-4 rounded-xl text-left transition-all">
-                        <div className="font-bold text-indigo-400 text-sm mb-1">Diplomatic Maneuvers</div>
-                        <p className="text-xs text-slate-400">Secure resource pacts (+5 Stability).</p>
-                      </button>
-                      <button onClick={() => advanceMonth('pass')} className="bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 p-4 rounded-xl text-left transition-all">
-                        <div className="font-bold text-amber-400 text-sm mb-1">Strategic Patience</div>
-                        <p className="text-xs text-slate-400">Hold current positions.</p>
-                      </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl flex flex-col h-[400px] lg:h-auto">
-                  <h3 className="text-sm font-bold tracking-wider uppercase text-slate-300 mb-3 border-b border-slate-800 pb-2">
-                    <i className="fa-solid fa-terminal mr-2 text-amber-500"></i> Situation Log
+                {/* Right Panel: Interactive World Map Grid */}
+                <div className="md:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl flex flex-col">
+                  <h3 className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-3">
+                    <i className="fa-solid fa-map text-amber-400 mr-1"></i> Strategic World Map (Click to Attack)
                   </h3>
-                  <div className="bg-slate-950 border border-slate-800 rounded-lg p-3 flex-1 overflow-y-auto space-y-2 text-xs font-mono">
-                    {logs.map((log, index) => (
-                      <div key={index} className="text-slate-300 border-b border-slate-900 pb-1.5 last:border-0">
-                        {log}
-                      </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 flex-1">
+                    {tiles.map(tile => (
+                      <button 
+                        key={tile.id} 
+                        onClick={() => handleTileClick(tile)}
+                        className={`border p-3 rounded-xl flex flex-col justify-between text-left transition transform hover:scale-105 ${tile.color}`}
+                      >
+                        <div>
+                          <div className="text-xs font-bold">{tile.name}</div>
+                          <div className="text-[10px] opacity-75 mt-0.5">Owner: {tile.owner}</div>
+                        </div>
+                        <div className="text-[10px] mt-3 font-mono bg-black/30 px-2 py-0.5 rounded w-max">
+                          Defense: {tile.defense}
+                        </div>
+                      </button>
                     ))}
-                  </div>
-                  <div className="mt-4 pt-3 border-t border-slate-800 flex justify-between items-center">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">DEFCON 2</span>
-                    <button onClick={() => setGameState('menu')} className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg">
-                      Main Menu
-                    </button>
                   </div>
                 </div>
               </div>
